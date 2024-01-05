@@ -7,50 +7,45 @@ import (
 	"os"
 	"path/filepath"
 	"strapup-files/internal/database"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofor-little/env"
 )
 
 type FileNode struct {
-	Name     string
-	IsDir    bool
-	Children []FileNode
+	Name     string     `json:"name"`
+	IsDir    bool       `json:"isDir"`
+	Children []FileNode `json:"children"`
 }
 
 func GetDirectoryStructure(rootPath string) (FileNode, error) {
 	var result FileNode
-	result.Name = filepath.Base(rootPath)
+	baseNameUnescaped := strings.Replace(filepath.Base(rootPath), "_-_", "/", -1)
+	result.Name = baseNameUnescaped
 	result.IsDir = true
 
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	entries, readErr := os.ReadDir(rootPath)
+	if readErr != nil {
+		return FileNode{}, readErr
+	}
 
-		if path == rootPath {
-			return nil
+	for _, entry := range entries {
+		if entry.IsDir() {
+			children, err := GetDirectoryStructure(filepath.Join(rootPath, entry.Name()))
+			if err != nil {
+				return FileNode{}, err
+			}
+			result.Children = append(result.Children, children)
+			continue
 		}
 
 		node := FileNode{
-			Name:  info.Name(),
-			IsDir: info.IsDir(),
-		}
-
-		if info.IsDir() {
-			children, err := GetDirectoryStructure(path)
-			if err != nil {
-				return err
-			}
-			node.Children = append(node.Children, children)
+			Name:  entry.Name(),
+			IsDir: entry.IsDir(),
 		}
 
 		result.Children = append(result.Children, node)
-
-		return nil
-	})
-
-	if err != nil {
-		return FileNode{}, err
 	}
 
 	return result, nil
@@ -99,10 +94,18 @@ func GetTemlateFile(filePath string) (string, error) {
 // 	GithubID int `json:"github_id"`
 // }
 
-func Authorize(c *fiber.Ctx) (bool, User, error) {
+func Authorize(c *fiber.Ctx) (bool, bool, User, error) {
 	token := c.Get("Authorization")
 	if token == "" {
-		return false, User{}, fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+		return false, false, User{}, fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	root_key, err := env.MustGet("API_ROOT_KEY")
+	if err != nil {
+		return false, false, User{}, err
+	}
+	if root_key == token {
+		return true, true, User{}, nil
 	}
 
 	// Specify the GitHub API endpoint you want to access
@@ -113,7 +116,7 @@ func Authorize(c *fiber.Ctx) (bool, User, error) {
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return false, User{}, err
+		return false, false, User{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
@@ -121,7 +124,7 @@ func Authorize(c *fiber.Ctx) (bool, User, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error making request:", err)
-		return false, User{}, err
+		return false, false, User{}, err
 	}
 	defer resp.Body.Close()
 
@@ -139,7 +142,7 @@ func Authorize(c *fiber.Ctx) (bool, User, error) {
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		fmt.Println("Error decoding JSON:", err)
-		return false, User{}, err
+		return false, false, User{}, err
 	}
 
 	// Check if the response contains certain values
@@ -157,10 +160,10 @@ func Authorize(c *fiber.Ctx) (bool, User, error) {
 	userGithubID := int(data.Id)
 	user, err := DbGetUserByGithubID(userGithubID)
 	if err != nil {
-		return false, User{}, err
+		return false, false, User{}, err
 	}
 
-	return true, user, nil
+	return true, false, user, nil
 }
 
 type User struct {
