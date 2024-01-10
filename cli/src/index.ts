@@ -16,14 +16,20 @@ export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = dirname(fileURLToPath(import.meta.url));
 export const WORK_DIR = process.cwd()
 
-async function main() {
-    if (args.length > 2) {
-        execSync(`node ${__dirname}/headless/index.js ${args.slice(2).join(' ')}`, { stdio: 'inherit' })
-        return
-    }
-    console.clear();
-    p.intro(`${color.bgCyan(color.black(' strapup '))}`);
 
+
+async function main() {
+    const HEADLESS: boolean = args.length > 2
+    // if (args.length > 2) {
+    //     execSync(`node ${__dirname}/headless/index.js ${args.slice(2).join(' ')}`, { stdio: 'inherit' })
+    //     return
+    // }
+    if(!HEADLESS)
+    {
+        console.clear();
+        p.intro(`${color.bgCyan(color.black(' strapup '))}`);
+    }
+   
     let settings: StrapupSettings
     try {
         settings = loadSettings()
@@ -41,11 +47,15 @@ async function main() {
         p.log.message(`Signed in as ${color.cyan(githubUser.login)}`)
     }
 
-    p.log.message(`Templates are saved here -> ${color.dim(TEMPLATES_PATH())}`)
-    console.log(`${color.gray(p.S_BAR)}  Scripts can be modified and added here -> ${color.dim(SCRIPTS_DIR_PATH)}`)
-    console.log(`${color.gray(p.S_BAR)}  And you are here -> ${color.dim(process.cwd())}`)
+    if(!HEADLESS)
+    {
+        p.log.message(`Templates are saved here -> ${color.dim(TEMPLATES_PATH())}`)
+        console.log(`${color.gray(p.S_BAR)}  Scripts can be modified and added here -> ${color.dim(SCRIPTS_DIR_PATH)}`)
+        console.log(`${color.gray(p.S_BAR)}  And you are here -> ${color.dim(process.cwd())}`)
+    }
+    
 
-    const command = await p.select({
+    const command = HEADLESS? args[2] : await p.select({
         message: 'What do you want to do?',
         options: [
             { value: 'run-script', label: `${color.underline(color.cyan('run-script'))} - run a script.` },
@@ -62,10 +72,15 @@ async function main() {
         case 'run-script': {
             const scripts = await importScripts(SCRIPTS_DIR_PATH)
             const options = Object.entries(scripts).map(([name, { description }]) => ({ value: name, label: name, hint: description }))
-            const scriptName = await p.selectsearch({
+            const scriptName = HEADLESS? args[3] : await p.selectsearch({
                 message: 'What script do you want to run?',
                 options: options,
-            }) as string
+            }) as string 
+
+            if(!scriptName)
+            {
+                throw new Error('No script name provided.')
+            }
 
             let script = scripts[scriptName]
             if (!options.map(({ value }) => value).includes(scriptName)) {
@@ -81,23 +96,44 @@ async function main() {
             else {
                 script = scripts[scriptName]
             }
+
             const scriptParams = getParameterNames(script.command)
             const scriptArguments: string[] = []
 
-            for (const param of scriptParams) {
-                const paramValue = await p.text({
-                    message: `Provide value for ${param}`,
-                    validate: (value) => {
-                        if (!value) return 'Please enter a value.'
+            if(HEADLESS)
+            {
+                let i = 0
+                for (const param of scriptParams) {
+                    const paramValue = args[4 + i]
+                    i++
+                    if (!paramValue) {
+                        throw new Error(`No value provided for ${param} parameter.`)
                     }
-                }) as string
-                scriptArguments.push(paramValue)
+                    scriptArguments.push(paramValue)
+                }
             }
+            else
+            {
+                for (const param of scriptParams) {
+                    const paramValue = await p.text({
+                        message: `Provide value for ${param}`,
+                        validate: (value) => {
+                            if (!value) return 'Please enter a value.'
+                        }
+                    }) as string
+                    scriptArguments.push(paramValue)
+                }
+            }
+            
 
             await runScript({ functionParams: scriptArguments, functionToRun: script.command })
             break
         }
         case 'save': {
+            if(HEADLESS)
+            {
+                throw new Error("Save not allowed in headless mode.")
+            }
             const templateName = await p.text({
                 message: 'What should be the name of the template?',
                 placeholder: 'my-template',
@@ -146,17 +182,22 @@ async function main() {
                     description: metdata?.templateDesc
                 }
             })
-            if (templates.length == 0) {
-                p.log.error(`You don't have any templates saved.`)
-                return
-            }
+            // if (templates.length == 0) {
+            //     p.log.error(`You don't have any templates saved.`)
+            //     return
+            // }
 
-            const templateName = await p.selectsearch({
+            const templateName = HEADLESS? args[3] : await p.selectsearch({
                 message: 'What template do you want to paste?',
                 options: templates.map(({ name, description }) => ({ value: name, label: name, hint: description })),
             }) as string
 
-            const destinationRelativePath = await p.text({
+            if(!templateName)
+            {
+                throw new Error ("Please provide template name.")
+            }
+
+            const destinationRelativePath = HEADLESS? args[4] || '.' : await p.text({
                 message: 'Where should we paste your template?',
                 initialValue: './',
                 validate: (value) => {
@@ -176,10 +217,19 @@ async function main() {
             break
         }
         case 'list': {
+            if(HEADLESS)
+            {
+                throw new Error("List not allowed in headless mode.")
+            }
             list()
             break
         }
         case 'push-script': {
+            if(HEADLESS)
+            {
+                throw new Error("Push not allowed in headless mode.")
+            }
+
             if (!githubUser) {
                 p.log.error(`You need to be logged in to save script at remote.`)
                 return
@@ -214,6 +264,11 @@ async function main() {
             break
         }
         case 'push-template': {
+            if(HEADLESS)
+            {
+                throw new Error("Push not allowed in headless mode.")
+            }
+
             if (!githubUser) {
                 p.log.error(`You need to be logged in to save template at remote.`)
                 return
@@ -263,8 +318,11 @@ async function main() {
             break
         }
     }
-
-    p.outro(`Problems? ${color.underline(color.cyan('https://example.com'))}`);
+    
+    if(!HEADLESS)
+    {
+        p.outro(`Problems? ${color.underline(color.cyan('https://example.com'))}`);
+    }
 }
 
 main().catch(console.error);
