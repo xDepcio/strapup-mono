@@ -11,6 +11,7 @@ import { FaStar } from "react-icons/fa"
 import { FaCode } from "react-icons/fa6"
 import { MdOutlineStorage } from "react-icons/md"
 import '../../../styles/docs.css'
+import Link from 'next/link'
 
 function getScriptDoc(name: string) {
     return allDocs.find((doc) => doc.slugAsParams === escapeName(name))
@@ -20,9 +21,11 @@ export default async function TemplatePage({ params }: { params: { id: string } 
     // const templateName = decodeURIComponent(unescapeName(params.slug))
     // console.log(templateName)
     const { rows, rowCount } = await DBQuery<Pick<DbScript, "name" | "tags" | "stars" | 'id'> & Pick<DbUser, "image" | "login" | "github_id">>(`
-        SELECT s.id, s.name, s.tags, s.stars, u.login, u.image, u.github_id FROM scripts s
+        SELECT s.id, s.name, s.tags, u.login, u.image, u.github_id, COUNT(uss.script_id) AS stars FROM scripts s
         JOIN users u ON s.owner_id = u.id
+        LEFT JOIN user_script_stars uss ON uss.script_id = s.id
         WHERE s.id = $1 AND s.public IS TRUE
+        GROUP BY uss.script_id, s.id, u.id
     `, [params.id])
 
     if (rowCount === 0) {
@@ -67,7 +70,7 @@ export default async function TemplatePage({ params }: { params: { id: string } 
                     <p className='text-muted-foreground text-xs mt-8'>related tags</p>
                     <div className='flex flex-wrap gap-2 mt-2'>
                         {rows[0].tags.split(' ').map((tag) => (
-                            <div className='bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-800 dark:hover:bg-indigo-700 transition-all shadow-sm text-white rounded-md px-2 py-1 text-xs cursor-pointer'>{tag}</div>
+                            <Link href={{ pathname: '/search', query: { keyword: tag, searchTemplates: false, searchScripts: true } }} className='bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-800 dark:hover:bg-indigo-700 transition-all shadow-sm text-white rounded-md px-2 py-1 text-xs cursor-pointer'>{tag}</Link>
                         ))}
                     </div>
                 </div>
