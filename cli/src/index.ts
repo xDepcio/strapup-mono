@@ -5,10 +5,11 @@ import { dirname } from 'path';
 import color from 'picocolors';
 import { fileURLToPath } from 'url';
 import * as p from './clack-lib/prompts/index.js';
+import { isCancel } from './clack-lib/core/index.js'
 import { list, paste, runScript, save, saveScriptAtRemote, saveTemplateAtRemote, signIn } from './commandsHandlers.js';
 import { SCRIPTS_DIR_PATH, StrapupSettings, TEMPLATES_PATH } from './constants.js';
 import { DirectoryNotExists } from './errors.js';
-import { downloadScript, escape, getParameterNames, importScripts, initializeStrapupDir, loadSettings, parseName, readMetadataFile } from './utils.js';
+import { downloadScript, escape, getParameterNames, importScripts, initializeStrapupDir, loadSettings, parseName, readMetadataFile, outroStrapup } from './utils.js';
 import { loginToGithub } from './auth/login.js';
 
 export const args = process.argv
@@ -16,9 +17,8 @@ export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = dirname(fileURLToPath(import.meta.url));
 export const WORK_DIR = process.cwd()
 
-
-
 async function main() {
+
     const HEADLESS: boolean = args.length > 2
     // if (args.length > 2) {
     //     execSync(`node ${__dirname}/headless/index.js ${args.slice(2).join(' ')}`, { stdio: 'inherit' })
@@ -68,6 +68,13 @@ async function main() {
         ],
     })
 
+    if(isCancel(command))
+    {
+        p.cancel('Operation canceled.')
+        outroStrapup(HEADLESS)
+        return
+    }
+
     switch (command) {
         case 'run-script': {
             const scripts = await importScripts(SCRIPTS_DIR_PATH)
@@ -80,6 +87,12 @@ async function main() {
             if(!scriptName)
             {
                 throw new Error('No script name provided.')
+            }
+
+            if(!HEADLESS && isCancel(scriptName))
+            {
+                p.cancel('Operation canceled.')
+                break
             }
 
             let script = scripts[scriptName]
@@ -121,10 +134,14 @@ async function main() {
                             if (!value) return 'Please enter a value.'
                         }
                     }) as string
+                    if(isCancel(paramValue))
+                    {
+                        p.cancel('Operation canceled.')
+                        return
+                    }
                     scriptArguments.push(paramValue)
                 }
             }
-            
 
             await runScript({ functionParams: scriptArguments, functionToRun: script.command })
             break
@@ -139,6 +156,12 @@ async function main() {
                 placeholder: 'my-template',
                 validate: (value) => {
                     if (!value) return 'Please enter a name.'
+                    else if(isCancel(value))
+                    {
+                        p.cancel()
+                        outroStrapup(HEADLESS)
+                        return
+                    }
                     if (value.match(/[^(a-zA-Z_\-)]/)?.length) return 'Please enter a valid name.'
                 }
             }) as string
@@ -147,6 +170,12 @@ async function main() {
                 message: `Describe your template. ${color.dim("(optional)")}`,
                 placeholder: 'Template that spins up something big...',
             }) as string | undefined
+
+            if(isCancel(templateDescription))
+            {
+                p.cancel('Operation canceled.')
+                break
+            }
 
             const sourceRelativePaths = (await p.text({
                 message: 'Specify relative path (or paths space seperated) to the source directory/file. Directory structure leading to the source will be preserved.',
@@ -160,6 +189,13 @@ async function main() {
                 },
             }) as string).split(' ')
 
+            if(isCancel(sourceRelativePaths))
+            {
+                p.cancel('Operation canceled.')
+                break
+            }
+
+
             const flags = await p.multiselect({
                 message: 'Select additional options.',
                 options: [
@@ -170,6 +206,12 @@ async function main() {
             }) as string[]
 
             const withGitignore = flags.includes('--with-gitignore')
+
+            if(isCancel(flags))
+            {
+                p.cancel('Operation canceled.')
+                break
+            }
 
             await save({ sourceRelativePaths, templateName, withGitignore, templateDescription })
             break
@@ -197,6 +239,12 @@ async function main() {
                 throw new Error ("Please provide template name.")
             }
 
+            if(!HEADLESS && isCancel(templateName))
+            {
+                p.cancel('Operation canceled.')
+                break
+            }
+
             const destinationRelativePath = HEADLESS? args[4] || '.' : await p.text({
                 message: 'Where should we paste your template?',
                 initialValue: './',
@@ -205,6 +253,12 @@ async function main() {
                     if (value[0] !== '.') return 'Please enter a relative path.'
                 }
             }) as string
+
+            if(!HEADLESS && isCancel(templateName))
+            {
+                p.cancel('Operation canceled.')
+                break
+            }
 
             await paste({
                 templateName: templateName,
@@ -217,10 +271,6 @@ async function main() {
             break
         }
         case 'list': {
-            if(HEADLESS)
-            {
-                throw new Error("List not allowed in headless mode.")
-            }
             list()
             break
         }
@@ -314,15 +364,12 @@ async function main() {
             break
         }
         default: {
-            console.log('Command not found')
+            p.log.error('Command not found')
             break
         }
     }
     
-    if(!HEADLESS)
-    {
-        p.outro(`Problems? ${color.underline(color.cyan('https://example.com'))}`);
-    }
+    outroStrapup(HEADLESS)
 }
 
 main().catch(console.error);
