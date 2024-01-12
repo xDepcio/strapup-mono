@@ -24,22 +24,12 @@ import { FaEyeSlash } from "react-icons/fa";
 export default function SearchPage() {
     const { data, isLoading } = useContext(SearchContext)
     const searchParams = useSearchParams()
-    // const subData = useMemo(() => {
-    //     const page = parseInt(searchParams.get('page') ?? '1')
-    //     const perPage = parseInt(searchParams.get('perPage') ?? '10')
-    //     const start = (page - 1) * perPage
-    //     const end = start + perPage
-    //     return {
-    //         scripts: data.scripts.slice(start, end),
-    //         templates: data.templates.slice(start, end),
-    //     }
-    // }, [data])
-    // const searchParams = useBetterQueryParams()
+
     const formattedData = useMemo(() => {
         return [
             ...data.scripts.map(e => ({ ...e, type: 'script' })),
             ...data.templates.map(e => ({ ...e, type: 'template' })),
-        ].sort((a, b) => a.stars - b.stars)
+        ].sort((a, b) => b.stars - a.stars)
     }, [data])
 
     return (
@@ -147,7 +137,7 @@ export default function SearchPage() {
                                             </div>
                                             <p className="text-ellipsis overflow-hidden line-clamp-2 max-w-[60ch]">Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempora aut non cupiditate porro in! Laborum repellendus, molestias enim voluptatibus doloribus nulla corrupti iure quod perferendis maiores? Impedit laborum in odit!</p>
                                             <div className="flex gap-2">
-                                                {entry.tags.split(' ').map((tag, i) => (
+                                                {entry.tags?.split(' ').map((tag, i) => (
                                                     <Link href={`/search?${newQueryParams(searchParams, { keyword: tag })}`} className="dark:bg-zinc-800 bg-zinc-200 px-2 py-[2px] rounded-md text-sm"
                                                         key={i}>
                                                         {tag}

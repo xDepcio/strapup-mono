@@ -214,8 +214,7 @@ interface RunScriptOptions {
 }
 
 export async function runScript({ functionParams = [], functionToRun }: RunScriptOptions) {
-    // @ts-ignore
-    const commands = functionToRun(...functionParams)
+    const commands = functionToRun(...functionParams).filter(command => command)
     const concatedCommands = commands.join('\n')
 
     p.log.info(`Running following commands, follow on-screen prompts.`)
@@ -253,12 +252,14 @@ export async function saveScriptAtRemote({ scriptName, isPublic, scriptPath }: S
         body: JSON.stringify({
             name: scriptName,
             isPublic: isPublic,
-            tags: [],
+            tags: scriptInterpreted.tags,
+            description: scriptInterpreted.description,
             content: scriptFile
         }),
     })
     if (!res.ok) {
         p.log.error(`Failed to save script at remote.`)
+        console.log(await res.json())
         return
     }
 
@@ -330,7 +331,7 @@ export async function saveTemplateAtRemote({ isPublic, templateName, templatePat
         },
     }
 
-    console.log(inspect(reqBody, { depth: null }))
+    // console.log(inspect(reqBody, { depth: null }))
     const res = await fetch(`${GO_BACKEND_URL}/api/templates`, {
         method: 'POST',
         headers: {

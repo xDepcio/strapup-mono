@@ -13,14 +13,14 @@ async function syncContentWorker(contentDir: string) {
         try {
             fs.rmSync(process.env.PWD + '/temp', { force: true, recursive: true })
             fs.mkdirSync(process.env.PWD + '/temp')
-            const savePath = process.env.PWD + `/temp/script.mjs`
+            const savePath = process.env.PWD + `/temp/${escape(scriptName)}.mjs`
             await downloadScript(scriptName, savePath)
             const scriptMdx = await getScriptMdx(savePath)
             fs.writeFileSync(`${contentDir}/remote-scripts/${escape(scriptName)}.mdx`, scriptMdx)
             // await markScriptAsSynced(scriptName)
         } catch (e) {
             console.error("Failed to sync script", scriptName)
-            console.error(e)
+            // console.error(e)
         }
     })
 
@@ -35,7 +35,7 @@ async function syncContentWorker(contentDir: string) {
             // await markTemplateAsSynced(templateName)
         } catch (e) {
             console.error("Failed to sync template", templateName)
-            console.error(e)
+            // console.error(e)
         }
     })
 }

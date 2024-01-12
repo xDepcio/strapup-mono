@@ -16,6 +16,7 @@ export const args = process.argv
 export const __filename = fileURLToPath(import.meta.url);
 export const __dirname = dirname(fileURLToPath(import.meta.url));
 export const WORK_DIR = process.cwd()
+export const HEADLESS = args.length > 2
 
 async function main() {
 
@@ -66,7 +67,7 @@ async function main() {
             { value: 'push-script', label: `${color.underline(color.cyan('push-script'))} - save choosen script at remote.` },
             { value: 'push-template', label: `${color.underline(color.cyan('push-template'))} - save choosen template at remote.` },
         ],
-    })
+    }) : args[2]
 
     if(isCancel(command))
     {
