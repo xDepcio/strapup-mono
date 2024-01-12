@@ -67,7 +67,7 @@ async function main() {
             { value: 'push-script', label: `${color.underline(color.cyan('push-script'))} - save choosen script at remote.` },
             { value: 'push-template', label: `${color.underline(color.cyan('push-template'))} - save choosen template at remote.` },
         ],
-    }) : args[2]
+    })
 
     if(isCancel(command))
     {
