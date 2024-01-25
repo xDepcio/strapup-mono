@@ -7,6 +7,7 @@ import { DbTemplte, DbUser } from '@/db/types'
 import { escapeName } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { FaStar } from "react-icons/fa"
 import { FaCode } from "react-icons/fa6"
@@ -27,13 +28,13 @@ export default async function TemplatePage({ params }: { params: { id: string } 
     `, [params.id])
 
     if (rowCount === 0) {
-        return <div>404</div>
+        return notFound()
     }
 
     const template = rows[0]
     const templateDoc = getTemplateDoc(template.name)
     if (!templateDoc) {
-        return <div>404</div>
+        return notFound()
     }
 
     const { rows: scriptCountRows } = await DBQuery<Record<'scripts_count', number>>(`
@@ -68,7 +69,7 @@ export default async function TemplatePage({ params }: { params: { id: string } 
     return (
         <div className='min-h-screen'>
             <div className='max-w-screen-xl mx-auto grid grid-cols-[1fr_3fr_1fr] gap-10'>
-                <div className='mt-9'>
+                <div className='mt-9 sticky top-[6.8rem] h-fit'>
                     <div className='flex gap-1 flex-wrap'>
                         <p className=''>This template has earned</p>
                         <p className='text-yellow-500 text-nowrap flex items-center gap-1 font-medium'>{template.stars}<FaStar className="inline text-yellow-500" /></p>
@@ -96,12 +97,12 @@ export default async function TemplatePage({ params }: { params: { id: string } 
                     </div>
                     <p className='text-muted-foreground text-xs mt-8'>related tags</p>
                     <div className='flex flex-wrap gap-2 mt-2'>
-                        {template.tags?.split(' ').map((tag) => (
-                            <Link href={{ pathname: '/search', query: { keyword: tag, searchTemplates: true, searchScripts: false } }} className='bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-800 dark:hover:bg-indigo-700 transition-all shadow-sm text-white rounded-md px-2 py-1 text-xs cursor-pointer'>{tag}</Link>
+                        {template.tags?.split(' ').map((tag, i) => (
+                            <Link key={i} href={{ pathname: '/search', query: { keyword: tag, searchTemplates: true, searchScripts: false } }} className='bg-indigo-600 hover:bg-indigo-500 dark:bg-indigo-800 dark:hover:bg-indigo-700 transition-all shadow-sm text-white rounded-md px-2 py-1 text-xs cursor-pointer'>{tag}</Link>
                         ))}
                     </div>
                 </div>
-                <div className=''>
+                <div className='overflow-x-auto'>
                     <Mdx code={templateDoc.body.code} />
                 </div>
                 <PageContentNav />

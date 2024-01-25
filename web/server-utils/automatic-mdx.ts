@@ -34,6 +34,11 @@ sortNum: ${sortNum}
 ---
 ### ${escapeAt(script.name)}
 ${escapeAt(script.description || '')}
+
+To run use:
+\`\`\`command
+npx strapup run-script ${script.name}
+\`\`\`
 ### Executed commands
 \`\`\`bash
 ${script.command}
@@ -57,16 +62,19 @@ export async function getTemplateMdx(templatePath: string, templateName: string)
         if (templateInfo.templateDesc) description = templateInfo.templateDesc
     }
     const filesNames = getAllFilesNameDepthFirst(templatePath)
-    const codeBlocks = getCodeBlocks(filesNames)
+    const codeBlocks = getCodeBlocks(filesNames, templatePath)
     const mdxContent = getMdxContent({ sortNum: 1, title: templateName, codeBlocks, treeString: dirStructure, description })
     return mdxContent
 }
 
 
-const getCodeBlocks = (files: string[]) => files.map((file) => {
+const getCodeBlocks = (files: string[], storagePath: string) => files.map((file) => {
     const fileContent = fs.readFileSync(file, "utf-8")
     const fileExtension = path.extname(file).replace(".", "")
-    return `\`\`\`${fileExtension} title="${file}"
+    console.log('------')
+    console.log(file, storagePath)
+    console.log('------')
+    return `\`\`\`${fileExtension} title="${path.relative(storagePath, file)}"
 ${fileContent}\`\`\``
 }).join("\n")
 

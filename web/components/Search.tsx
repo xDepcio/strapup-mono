@@ -29,74 +29,6 @@ export default function Search() {
     const [searchResults, setSearchResults] = useState<SearchResBodyData>()
     const [searchInput, setSearchInput] = useState<string>('')
     const router = useRouter()
-    // useEffect(() => {
-    //     setSearchResults({
-    //         scripts: [
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             }
-    //         ],
-    //         templates: [
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             },
-    //             {
-    //                 name: 'Create-Next-App-ShadCN',
-    //                 tags: 'Next React Shadcn Prisma Typescript Tailwind',
-    //                 stars: 0,
-    //             }
-    //         ]
-    //     })
-    // }, [])
 
     useHotkeys('ctrl+k', (e) => {
         e.preventDefault()
@@ -137,7 +69,7 @@ export default function Search() {
 
     return (
         <Dialog>
-            <DialogTrigger asChild ref={searchRef}>
+            <DialogTrigger id="search-trigger" asChild ref={searchRef}>
                 <button className="dark:bg-zinc-900 bg-zinc-100 flex text-muted-foreground text-sm items-center justify-between px-4 py-2 gap-8 rounded-md">
                     <div className="flex items-center justify-center gap-2">
                         <FaSearch />
@@ -176,7 +108,7 @@ export default function Search() {
                                                 ...searchResults.scripts.map(e => ({ ...e, type: 'script' })),
                                                 ...searchResults.templates.map(e => ({ ...e, type: 'template' })),
                                             ].map((entry, i) => (
-                                                <Link href={entry.type === 'script' ? `/scripts/${entry.id}` : `/templates/${entry.id}`} onClick={closeDialog}>
+                                                <Link key={i} href={entry.type === 'script' ? `/scripts/${entry.id}` : `/templates/${entry.id}`} onClick={closeDialog}>
                                                     <div key={i} className="flex flex-col dark:hover:bg-zinc-900 hover:bg-zinc-100 rounded-md p-2 cursor-pointer gap-1">
                                                         <div className="flex gap-4 justify-start">
                                                             <p className="text-sm">{entry.name}</p>
